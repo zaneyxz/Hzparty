@@ -53,6 +53,7 @@ export function TicketsPage({
   const [whatsapp, setWhatsapp] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [mpConfigured, setMpConfigured] = useState<boolean | null>(null);
+  const [mpApiUnreachable, setMpApiUnreachable] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [pixCheckout, setPixCheckout] = useState<{
@@ -65,10 +66,16 @@ export function TicketsPage({
     let active = true;
     fetchMercadoPagoConfig()
       .then((cfg) => {
-        if (active) setMpConfigured(cfg.configured);
+        if (active) {
+          setMpConfigured(cfg.configured);
+          setMpApiUnreachable(false);
+        }
       })
       .catch(() => {
-        if (active) setMpConfigured(false);
+        if (active) {
+          setMpConfigured(null);
+          setMpApiUnreachable(true);
+        }
       });
     return () => {
       active = false;
@@ -242,6 +249,31 @@ export function TicketsPage({
         </p>
       </div>
 
+      {mpApiUnreachable && (
+        <div
+          role="status"
+          className="mt-6 flex items-start gap-3 rounded-lg border border-amber-500/35 bg-amber-500/10 p-4 text-xs text-amber-100 sm:text-sm"
+        >
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+          <div>
+            <p className="font-semibold text-white">
+              Rota de API do Mercado Pago não respondeu neste servidor
+            </p>
+            <p className="mt-1 text-amber-200/90">
+              Verifique se o deploy foi feito via Git (com a pasta{' '}
+              <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-xs text-white">
+                netlify/functions
+              </code>{' '}
+              e o arquivo{' '}
+              <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-xs text-white">
+                netlify.toml
+              </code>
+              ) e faça um novo deploy na Netlify.
+            </p>
+          </div>
+        </div>
+      )}
+
       {mpConfigured === false && (
         <div
           role="status"
@@ -254,11 +286,11 @@ export function TicketsPage({
             </p>
             <p className="mt-1 text-amber-200/90">
               Para gerar cobranças Pix reais que caem direto na sua conta, adicione o
-              Access Token do Mercado Pago na variável secreta{' '}
+              Access Token do Mercado Pago na variável{' '}
               <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-xs text-white">
                 MERCADO_PAGO_ACCESS_TOKEN
               </code>{' '}
-              no painel de Segredos (Secrets).
+              nas variáveis de ambiente (Environment variables) e faça um novo deploy.
             </p>
           </div>
         </div>
