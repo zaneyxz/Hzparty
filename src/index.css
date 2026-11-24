@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Barlow Condensed", sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: #050507;
+    color: #f4f4f6;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #050507;
+    overflow-x: hidden;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle crimson rim & underground ambient atmosphere */
+.hz-ambient-glow {
+  background: radial-gradient(
+    ellipse 60% 45% at 50% 0%,
+    rgba(220, 20, 60, 0.16) 0%,
+    rgba(139, 10, 32, 0.06) 45%,
+    transparent 75%
+  );
+}
+
+.hz-card-surface {
+  background-color: #0d0d11;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hz-card-surface-hover {
+  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hz-card-surface-hover:hover {
+  border-color: rgba(220, 20, 60, 0.45);
+  background-color: #111117;
+}
+
+.hz-silver-text {
+  background: linear-gradient(180deg, #ffffff 0%, #c7cbd4 62%, #8d93a1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hz-crimson-button {
+  background: linear-gradient(135deg, #e11d38 0%, #9f0d24 100%);
+  box-shadow: 0 0 24px rgba(220, 20, 60, 0.25);
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hz-crimson-button:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 32px rgba(220, 20, 60, 0.4);
+}
+
+.hz-crimson-button:active {
+  transform: scale(0.98);
+}
+
+@keyframes hzFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hzFadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hz-fade-up {
+  animation: hzFadeUp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hz-fade-scale {
+  animation: hzFadeScale 480ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

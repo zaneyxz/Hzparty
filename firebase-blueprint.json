@@ -1,0 +1,316 @@
+{
+  "entities": {
+    "EventEdition": {
+      "title": "EventEdition",
+      "description": "Edição oficial da HZ PARTY exibida na página inicial e gerenciada pelo administrador.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 64,
+          "description": "Identificador único da edição"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Título da edição"
+        },
+        "subtitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 400,
+          "description": "Descrição resumida da festa"
+        },
+        "dateLabel": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80,
+          "description": "Data formatada do evento"
+        },
+        "timeRange": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "description": "Horário de início e término"
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "description": "Local do evento"
+        },
+        "city": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Cidade e estado"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["proximo", "em-breve", "rascunho"],
+          "description": "Estado de publicação do evento"
+        },
+        "capacityLabel": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Classificação indicativa ou capacidade"
+        },
+        "ageRating": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Faixa etária"
+        },
+        "dressCode": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Orientação de vestimenta"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Carimbo de atualização do servidor"
+        }
+      },
+      "required": ["id", "title", "subtitle", "dateLabel", "timeRange", "venue", "city", "status", "updatedAt"]
+    },
+    "GuestListEntry": {
+      "title": "GuestListEntry",
+      "description": "Inscrição nominal na lista oficial do evento (dados pessoais restritos ao administrador).",
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "pattern": "^HZPL-[A-Z0-9]{6}$",
+          "maxLength": 16,
+          "description": "Código de protocolo da lista"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Nome completo do convidado"
+        },
+        "whatsapp": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 20,
+          "description": "WhatsApp formatado com DDD"
+        },
+        "eventTitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Edição vinculada"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["aguardando", "confirmado"],
+          "description": "Situação na lista"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na criação"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na atualização"
+        }
+      },
+      "required": ["protocol", "fullName", "whatsapp", "eventTitle", "status", "createdAt"]
+    },
+    "GuestListPublicEntry": {
+      "title": "GuestListPublicEntry",
+      "description": "Projeção pública da lista oficial do evento sem PII (sem WhatsApp), exibida em ordem alfabética na aba Lista.",
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "pattern": "^HZPL-[A-Z0-9]{6}$",
+          "maxLength": 16,
+          "description": "Código de protocolo da lista"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Nome completo do convidado"
+        },
+        "eventTitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Edição vinculada"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["aguardando", "confirmado"],
+          "description": "Situação na lista"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na criação"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na atualização"
+        }
+      },
+      "required": ["protocol", "fullName", "eventTitle", "status", "createdAt"]
+    },
+    "TicketPass": {
+      "title": "TicketPass",
+      "description": "Passe digital consultável pelo código do ingresso (sem PII sensível exposta publicamente).",
+      "type": "object",
+      "properties": {
+        "ticketCode": {
+          "type": "string",
+          "pattern": "^HZ-[A-Z0-9]{6}$",
+          "maxLength": 16,
+          "description": "Código único do ingresso"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Nome abreviado exibido no passe"
+        },
+        "eventTitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Título do evento"
+        },
+        "eventDate": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80,
+          "description": "Data do evento"
+        },
+        "eventTime": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "description": "Horário do evento"
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "description": "Local do evento"
+        },
+        "tierName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "description": "Resumo das categorias (Mulher/Homem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantidade total de ingressos"
+        },
+        "totalCents": {
+          "type": "number",
+          "description": "Valor total em centavos"
+        },
+        "mpPaymentId": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ID da cobrança Pix no Mercado Pago"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["aguardando-pagamento", "pago", "validado"],
+          "description": "Estado do ingresso"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na criação"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na atualização"
+        },
+        "validatedAtLabel": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Horário legível da validação na portaria"
+        }
+      },
+      "required": [
+        "ticketCode",
+        "displayName",
+        "eventTitle",
+        "eventDate",
+        "eventTime",
+        "venue",
+        "tierName",
+        "quantity",
+        "totalCents",
+        "mpPaymentId",
+        "status",
+        "createdAt"
+      ]
+    },
+    "TicketContact": {
+      "title": "TicketContact",
+      "description": "Dados nominais e WhatsApp do comprador isolados para acesso exclusivo do administrador.",
+      "type": "object",
+      "properties": {
+        "ticketCode": {
+          "type": "string",
+          "pattern": "^HZ-[A-Z0-9]{6}$",
+          "maxLength": 16,
+          "description": "Código do ingresso vinculado"
+        },
+        "holderName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Nome completo do titular"
+        },
+        "whatsapp": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 20,
+          "description": "WhatsApp com DDD"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor"
+        }
+      },
+      "required": ["ticketCode", "holderName", "whatsapp", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/EventEdition" },
+      "description": "Edições públicas da HZ PARTY; leitura pública e escrita restrita ao administrador."
+    },
+    "/guest_list/{entryId}": {
+      "schema": { "$ref": "#/entities/GuestListEntry" },
+      "description": "Lista nominal privada com WhatsApp; criação atômica por visitantes e leitura/gerenciamento exclusivos do administrador."
+    },
+    "/guest_list_public/{entryId}": {
+      "schema": { "$ref": "#/entities/GuestListPublicEntry" },
+      "description": "Lista pública sem telefone/WhatsApp para consulta de nomes e exibição em ordem alfabética na aba Lista."
+    },
+    "/tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/TicketPass" },
+      "description": "Passes digitais consultáveis pelo código exato (ID); criação inicial restrita a aguardando-pagamento."
+    },
+    "/ticket_contacts/{ticketId}": {
+      "schema": { "$ref": "#/entities/TicketContact" },
+      "description": "PII isolada do comprador (nome completo e WhatsApp); leitura e gestão exclusivas do administrador."
+    }
+  }
+}
