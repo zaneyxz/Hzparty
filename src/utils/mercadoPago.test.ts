@@ -61,14 +61,9 @@ test('normalizes Mercado Pago payment statuses accurately', () => {
   assert.equal(normalizeMercadoPagoStatus('in_process'), 'aguardando-pagamento');
 });
 
-test('computes authoritative R$ 1,00 test ticket order with 10% fee', () => {
+test('rejects removed R$ 1,00 test ticket ID', () => {
   const res = computeAuthoritativeOrder([
     { id: 'ingresso-teste-1real', quantity: 1 },
   ]);
-  assert.equal(res.valid, true);
-  assert.equal(res.totalQuantity, 1);
-  assert.equal(res.subtotalCents, 100);
-  assert.equal(res.serviceFeeCents, 10);
-  assert.equal(res.totalCents, 110);
-  assert.equal(res.tierSummary, '1x Ingresso de Teste');
+  assert.equal(res.valid, false);
 });

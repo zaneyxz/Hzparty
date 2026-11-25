@@ -231,6 +231,7 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isValidTicketCode(ticketId) &&
         isValidTicketPass(incoming()) &&
+        incoming().totalCents >= 1500 &&
         incoming().ticketCode == ticketId &&
         incoming().status == 'aguardando-pagamento' &&
         incoming().createdAt == request.time &&
