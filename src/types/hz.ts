@@ -20,6 +20,20 @@ export interface EventEdition {
   lineupHighlights: string[];
 }
 
+export interface ConfirmedAttraction {
+  id: string;
+  name: string;
+  role: string;
+  status: 'confirmado' | 'em-breve';
+  statusLabel: string;
+  badgeLabel: string;
+  schedule: string;
+  eventDate: string;
+  imageUrl: string;
+  imageAlt: string;
+  description?: string;
+}
+
 export interface TicketBatch {
   id: string;
   name: string;

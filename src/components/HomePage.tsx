@@ -1,6 +1,8 @@
 import { ArrowRight, Calendar, Clock, ExternalLink, MapPin, MessageCircle, Ticket } from 'lucide-react';
+import { CONFIRMED_ATTRACTIONS } from '../data/attractions';
 import { EVENT_LOCATION, PARTY_WHATSAPP_GROUPS } from '../data/events';
 import type { EventEdition, PageRoute } from '../types/hz';
+import { ConfirmedAttractionsSection } from './ConfirmedAttractionsSection';
 
 interface HomePageProps {
   events: EventEdition[];
@@ -187,6 +189,12 @@ export function HomePage({ events, onNavigate }: HomePageProps) {
           </div>
         </div>
       </section>
+
+      {/* Atrações Confirmadas (Line-up Oficial) */}
+      <ConfirmedAttractionsSection
+        attractions={CONFIRMED_ATTRACTIONS}
+        onNavigate={onNavigate}
+      />
 
       {/* Atmospheric Pillars (Editorial Numbering) */}
       <section className="border-b border-white/10 bg-[#07070A] py-14 sm:py-16">
