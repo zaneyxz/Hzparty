@@ -36,6 +36,11 @@ const AUTHORITATIVE_CATALOG: Record<
     priceCents: 2000,
     maxPerOrder: 6,
   },
+  'ingresso-teste-1real': {
+    name: 'Ingresso de Teste',
+    priceCents: 100,
+    maxPerOrder: 2,
+  },
 };
 
 export function computeAuthoritativeOrder(

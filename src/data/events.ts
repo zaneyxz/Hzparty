@@ -109,4 +109,16 @@ export const INITIAL_TICKET_BATCHES: TicketBatch[] = [
     ],
     maxPerOrder: 6,
   },
+  {
+    id: 'ingresso-teste-1real',
+    name: 'Ingresso de Teste',
+    tierLabel: 'Ingresso de teste para validação do sistema Pix, Promoters e QR Code',
+    batchLabel: 'Teste',
+    priceCents: 100,
+    status: 'disponivel',
+    perks: [
+      'Exclusivo para testar o checkout Mercado Pago e validação de QR Code',
+    ],
+    maxPerOrder: 2,
+  },
 ];

@@ -144,7 +144,7 @@ service cloud.firestore {
         data.venue is string && data.venue.size() >= 2 && data.venue.size() <= 120 &&
         data.tierName is string && data.tierName.size() >= 2 && data.tierName.size() <= 160 &&
         data.quantity is int && data.quantity >= 1 && data.quantity <= 12 &&
-        data.totalCents is int && data.totalCents >= 1500 && data.totalCents <= 500000 &&
+        data.totalCents is int && data.totalCents >= 100 && data.totalCents <= 500000 &&
         data.mpPaymentId is string && data.mpPaymentId.size() >= 1 && data.mpPaymentId.size() <= 64 &&
         data.status in ['aguardando-pagamento', 'pago', 'validado', 'cancelado'] &&
         data.createdAt is timestamp &&

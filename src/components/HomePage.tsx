@@ -199,35 +199,19 @@ export function HomePage({ events, onNavigate }: HomePageProps) {
       {/* Atmospheric Pillars (Editorial Numbering) */}
       <section className="border-b border-white/10 bg-[#07070A] py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-xs font-semibold tracking-[0.14em] text-[#E11D38] uppercase">
-                Sobre HZ PARTY
-              </p>
-              <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-white uppercase sm:text-4xl">
-                Estrutura desenhada para a madrugada
-              </h2>
-            </div>
-            <p className="max-w-md text-sm text-[#9CA3AF]">
-              Som de alta qualidade e DJs qualificados, com organização de lista e
-              validação rápida na entrada.
+          <div>
+            <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#E11D38] uppercase sm:text-5xl">
+              Sobre HZ PARTY
+            </h2>
+            <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#E2E4E9] sm:text-lg">
+              Estrutura de som de alta qualidade e DJs experientes, garantindo uma
+              experiência musical completa do início ao encerramento do evento.
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="hz-card-surface rounded-lg p-6">
               <p className="font-mono text-xs font-semibold text-[#E11D38]">01</p>
-              <h3 className="mt-3 font-display text-2xl font-bold text-white uppercase">
-                DJ Qualificado, Carro de som
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#9CA3AF]">
-                Estrutura de som de alta qualidade e DJs experientes, garantindo uma
-                experiência musical completa do início ao encerramento do evento.
-              </p>
-            </div>
-
-            <div className="hz-card-surface rounded-lg p-6">
-              <p className="font-mono text-xs font-semibold text-[#E11D38]">02</p>
               <h3 className="mt-3 font-display text-2xl font-bold text-white uppercase">
                 Gestão de Listas e Lotes
               </h3>
@@ -238,7 +222,7 @@ export function HomePage({ events, onNavigate }: HomePageProps) {
             </div>
 
             <div className="hz-card-surface rounded-lg p-6">
-              <p className="font-mono text-xs font-semibold text-[#E11D38]">03</p>
+              <p className="font-mono text-xs font-semibold text-[#E11D38]">02</p>
               <h3 className="mt-3 font-display text-2xl font-bold text-white uppercase">
                 Acesso Digital com QR Code
               </h3>
