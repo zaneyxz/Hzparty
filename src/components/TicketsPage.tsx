@@ -15,6 +15,7 @@ import type {
   EventEdition,
   PageRoute,
   PixPaymentCreationResult,
+  Promoter,
   TicketBatch,
   TicketReservation,
 } from '../types/hz';
@@ -36,6 +37,7 @@ import { QrCodeSvg } from './QrCodeSvg';
 interface TicketsPageProps {
   event: EventEdition;
   batches: TicketBatch[];
+  promoters: Promoter[];
   onCreateReservation: (reservation: TicketReservation) => void;
   onUpdateReservationStatus: (ticketCode: string, status: TicketReservation['status']) => void;
   onNavigate: (page: PageRoute) => void;
@@ -44,6 +46,7 @@ interface TicketsPageProps {
 export function TicketsPage({
   event,
   batches,
+  promoters,
   onCreateReservation,
   onUpdateReservationStatus,
   onNavigate,
@@ -51,6 +54,7 @@ export function TicketsPage({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [holderName, setHolderName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [selectedPromoterId, setSelectedPromoterId] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [mpConfigured, setMpConfigured] = useState<boolean | null>(null);
   const [mpApiUnreachable, setMpApiUnreachable] = useState(false);
@@ -115,6 +119,16 @@ export function TicketsPage({
     return () => window.clearInterval(interval);
   }, [pixCheckout, onUpdateReservationStatus]);
 
+  const activePromoters = useMemo(
+    () => promoters.filter((p) => p.active),
+    [promoters]
+  );
+
+  const selectedPromoter = useMemo(
+    () => activePromoters.find((p) => p.id === selectedPromoterId) ?? null,
+    [activePromoters, selectedPromoterId]
+  );
+
   const summary = useMemo(
     () => calculateOrderSummary(batches, quantities),
     [batches, quantities]
@@ -172,6 +186,13 @@ export function TicketsPage({
         quantity: payment.totalQuantity,
         totalCents: payment.totalCents,
         mpPaymentId: payment.paymentId,
+        promoter: selectedPromoter
+          ? {
+              id: selectedPromoter.id,
+              name: selectedPromoter.name,
+              code: selectedPromoter.code,
+            }
+          : null,
       });
 
       onCreateReservation(reservation);
@@ -494,6 +515,39 @@ export function TicketsPage({
                   />
                 </div>
 
+                {/* Optional Promoter Identification Selector (Zero Discount) */}
+                <div className="rounded-lg border border-white/10 bg-[#07070B] p-3.5">
+                  <label
+                    htmlFor="ticket-promoter"
+                    className="block text-xs font-semibold tracking-[0.06em] text-white"
+                  >
+                    Quem te indicou? Selecione seu promoter.
+                  </label>
+                  <select
+                    id="ticket-promoter"
+                    value={selectedPromoter ? selectedPromoter.id : ''}
+                    onChange={(e) => setSelectedPromoterId(e.target.value)}
+                    disabled={activePromoters.length === 0}
+                    className="mt-2 block min-h-[44px] w-full rounded-md border border-white/15 bg-[#050507] px-3.5 py-2 text-sm text-white focus:border-[#E11D38] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="">
+                      {activePromoters.length === 0
+                        ? 'Compra direta (sem promoter)'
+                        : 'Nenhum (compra direta)'}
+                    </option>
+                    {activePromoters.map((promoter) => (
+                      <option key={promoter.id} value={promoter.id}>
+                        {promoter.name} ({promoter.code})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-[11px] text-[#8D93A1]">
+                    {selectedPromoter
+                      ? `Indicação selecionada: ${selectedPromoter.name} (${selectedPromoter.code}) · Sem alteração no valor.`
+                      : 'Opcional · Apenas para identificação do promoter, sem alteração no preço.'}
+                  </p>
+                </div>
+
                 {formError && (
                   <p
                     role="alert"
@@ -568,6 +622,14 @@ export function TicketsPage({
                   <p className="mt-0.5 font-mono text-[11px] text-[#71717A]">
                     Pagamento MP #{pixCheckout.payment.paymentId}
                   </p>
+                  {pixCheckout.reservation.promoterCode && (
+                    <p className="mt-0.5 font-mono text-[11px] text-[#D1D5DB]">
+                      Promoter:{' '}
+                      <span className="font-bold text-white">
+                        {pixCheckout.reservation.promoterName} ({pixCheckout.reservation.promoterCode})
+                      </span>
+                    </p>
+                  )}
                   <p className="mt-1 font-mono text-lg font-bold text-[#E11D38] tabular-nums">
                     {formatBRL(pixCheckout.reservation.totalCents)}
                   </p>

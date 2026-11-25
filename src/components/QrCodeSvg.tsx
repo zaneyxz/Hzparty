@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import QRCode from 'qrcode';
 import { buildQrMatrix } from '../utils/qrMatrix';
 
 interface QrCodeSvgProps {
@@ -8,15 +9,27 @@ interface QrCodeSvgProps {
   label?: string;
 }
 
+function buildScannableQrMatrix(payload: string): boolean[][] {
+  try {
+    const qr = QRCode.create(payload || 'HZ-PARTY', { errorCorrectionLevel: 'M' });
+    const count = qr.modules.size;
+    return Array.from({ length: count }, (_, r) =>
+      Array.from({ length: count }, (_, c) => Boolean(qr.modules.get(r, c)))
+    );
+  } catch {
+    return buildQrMatrix(payload, 25);
+  }
+}
+
 export function QrCodeSvg({
   value,
   size = 180,
   accentCrimson = false,
   label = 'QR Code visual do ingresso',
 }: QrCodeSvgProps) {
-  const matrix = useMemo(() => buildQrMatrix(value, 25), [value]);
+  const matrix = useMemo(() => buildScannableQrMatrix(value), [value]);
   const moduleCount = matrix.length;
-  const quietZone = 2;
+  const quietZone = 4;
   const viewBoxSize = moduleCount + quietZone * 2;
 
   return (

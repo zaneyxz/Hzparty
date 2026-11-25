@@ -3,11 +3,18 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { INITIAL_EVENTS, INITIAL_TICKET_BATCHES } from './data/events';
 import { auth } from './lib/firebase';
 import {
+  adminCreatePromoter,
+  adminDeletePromoter,
   adminRemoveGuest,
   adminSaveEvent,
+  adminScanAndValidateTicket,
+  adminSyncPendingMercadoPagoPayments,
   adminToggleGuestStatus,
+  adminTogglePromoterActive,
   adminUpdateEventStatus,
+  adminUpdatePromoter,
   adminUpdateTicketStatus,
+  checkAuthorizedAdminAccess,
   fetchTicketPassByCode,
   isVerifiedAdminEmail,
   signInAdminWithGoogle,
@@ -15,12 +22,14 @@ import {
   subscribeAdminData,
   subscribePublicEvents,
   subscribePublicGuestList,
+  subscribePublicPromoters,
 } from './services/hzStore';
 import { checkMercadoPagoPaymentStatus } from './services/paymentsApi';
 import type {
   EventEdition,
   PageRoute,
   PreListEntry,
+  Promoter,
   PublicGuestListEntry,
   TicketReservation,
   TicketStatus,
@@ -66,6 +75,7 @@ function writeStoredTicketCode(ticketCode: string) {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageRoute>('home');
   const [events, setEvents] = useState<EventEdition[]>(INITIAL_EVENTS);
+  const [promoters, setPromoters] = useState<Promoter[]>([]);
   const [publicGuestList, setPublicGuestList] = useState<PublicGuestListEntry[]>([]);
   const [sessionPreList, setSessionPreList] = useState<PreListEntry[]>([]);
   const [sessionReservations, setSessionReservations] = useState<TicketReservation[]>([]);
@@ -73,14 +83,35 @@ export default function App() {
   // Auth & Admin Firestore subscriptions
   const [authReady, setAuthReady] = useState(false);
   const [authUser, setAuthUser] = useState<AdminAuthUser | null>(null);
+  const [isStaffAdmin, setIsStaffAdmin] = useState(false);
+  const [staffCheckReady, setStaffCheckReady] = useState(true);
   const [adminGuestList, setAdminGuestList] = useState<PreListEntry[]>([]);
   const [adminTickets, setAdminTickets] = useState<TicketReservation[]>([]);
   const [adminLoadError, setAdminLoadError] = useState<string | null>(null);
 
-  const isAuthorizedAdmin = isVerifiedAdminEmail(
+  const isBootstrappedAdmin = isVerifiedAdminEmail(
     authUser?.email,
     authUser?.emailVerified
   );
+  const isAuthorizedAdmin = isBootstrappedAdmin || isStaffAdmin;
+
+  useEffect(() => {
+    let active = true;
+    if (!authUser || isBootstrappedAdmin) {
+      setIsStaffAdmin(false);
+      setStaffCheckReady(true);
+      return;
+    }
+    setStaffCheckReady(false);
+    void checkAuthorizedAdminAccess(authUser).then((allowed) => {
+      if (!active) return;
+      setIsStaffAdmin(allowed);
+      setStaffCheckReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [authUser, isBootstrappedAdmin]);
 
   // Hydrate visitor's saved ticket codes on reopen (Firestore + live Mercado Pago status)
   useEffect(() => {
@@ -141,11 +172,13 @@ export default function App() {
 
     const unsubEvents = subscribePublicEvents(setEvents);
     const unsubPublicGuestList = subscribePublicGuestList(setPublicGuestList);
+    const unsubPromoters = subscribePublicPromoters(setPromoters);
 
     return () => {
       unsubAuth();
       unsubEvents();
       unsubPublicGuestList();
+      unsubPromoters();
     };
   }, []);
 
@@ -289,40 +322,24 @@ export default function App() {
     );
   };
 
-  const handleValidateTicketCode = async (code: string) => {
-    const normalized = code.trim().toUpperCase();
-    let target = mergedReservations.find(
-      (r) => r.ticketCode.toUpperCase() === normalized
-    );
-    if (!target) {
-      const remote = await fetchTicketPassByCode(normalized);
-      if (remote) {
-        target = remote;
-      }
+  const handleScanAndValidateTicket = useCallback(async (rawQrPayload: string) => {
+    const outcome = await adminScanAndValidateTicket(rawQrPayload);
+    if (outcome.outcome === 'valid' && outcome.ticket) {
+      const validatedTicket = outcome.ticket;
+      setSessionReservations((prev) =>
+        prev.map((r) =>
+          r.ticketCode === validatedTicket.ticketCode
+            ? {
+                ...r,
+                status: 'validado',
+                validatedAt: outcome.validatedAt ?? r.validatedAt,
+              }
+            : r
+        )
+      );
     }
-    if (!target) {
-      return { result: 'not-found' as const };
-    }
-    if (target.status === 'validado') {
-      return { result: 'already-validated' as const, ticket: target };
-    }
-    const wasUnpaid = target.status === 'aguardando-pagamento';
-    const validatedAt = new Date().toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    await handleAdminUpdateTicketStatus(target.ticketCode, 'validado', validatedAt);
-    const updatedTicket: TicketReservation = {
-      ...target,
-      status: 'validado',
-      validatedAt,
-    };
-    return {
-      result: 'validated' as const,
-      ticket: updatedTicket,
-      wasUnpaid,
-    };
-  };
+    return outcome;
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#050507] text-[#F4F4F6]">
@@ -347,6 +364,7 @@ export default function App() {
           <TicketsPage
             event={activeEvent}
             batches={INITIAL_TICKET_BATCHES}
+            promoters={promoters}
             onCreateReservation={handleCreateReservation}
             onUpdateReservationStatus={handleUpdateReservationStatus}
             onNavigate={handleNavigate}
@@ -365,13 +383,14 @@ export default function App() {
 
         {currentPage === 'admin' && (
           <AdminPage
-            authReady={authReady}
+            authReady={authReady && staffCheckReady}
             authUser={authUser}
             isAuthorizedAdmin={isAuthorizedAdmin}
             adminLoadError={adminLoadError}
             events={events}
             preListEntries={effectivePreList}
             reservations={mergedReservations}
+            promoters={promoters}
             onSignInGoogle={async () => {
               await signInAdminWithGoogle();
             }}
@@ -381,7 +400,14 @@ export default function App() {
             onTogglePreListStatus={handleTogglePreListStatus}
             onRemovePreListEntry={handleRemovePreListEntry}
             onUpdateTicketStatus={handleAdminUpdateTicketStatus}
-            onValidateTicketCode={handleValidateTicketCode}
+            onScanAndValidateTicket={handleScanAndValidateTicket}
+            onCreatePromoter={adminCreatePromoter}
+            onUpdatePromoter={adminUpdatePromoter}
+            onTogglePromoterActive={adminTogglePromoterActive}
+            onDeletePromoter={adminDeletePromoter}
+            onSyncPendingPayments={() =>
+              adminSyncPendingMercadoPagoPayments(mergedReservations)
+            }
           />
         )}
       </main>

@@ -1,7 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import {
   CalendarPlus,
-  CheckCircle2,
   ClipboardList,
   DollarSign,
   LayoutDashboard,
@@ -10,21 +9,27 @@ import {
   LogOut,
   QrCode,
   RefreshCw,
+  ScanLine,
   Search,
   ShieldAlert,
   Ticket,
   Trash2,
+  Trophy,
   Users,
-  XCircle,
 } from 'lucide-react';
 import type {
   EventEdition,
   PreListEntry,
+  Promoter,
   TicketReservation,
   TicketStatus,
 } from '../types/hz';
 import { checkMercadoPagoPaymentStatus } from '../services/paymentsApi';
 import { formatBRL } from '../utils/ticketing';
+import { mapMercadoPagoRawStatusToTicketStatus } from '../utils/promoters';
+import type { TicketScanResult } from '../utils/qrScanner';
+import { PromotersPanel } from './PromotersPanel';
+import { TicketScannerPanel } from './TicketScannerPanel';
 
 export interface AdminAuthUser {
   uid: string;
@@ -41,6 +46,7 @@ interface AdminPageProps {
   events: EventEdition[];
   preListEntries: PreListEntry[];
   reservations: TicketReservation[];
+  promoters: Promoter[];
   onSignInGoogle: () => Promise<void>;
   onSignOut: () => Promise<void>;
   onAddEvent: (event: EventEdition) => Promise<void>;
@@ -55,14 +61,32 @@ interface AdminPageProps {
     status: TicketStatus,
     validatedAtLabel?: string
   ) => Promise<void>;
-  onValidateTicketCode: (code: string) => Promise<{
-    result: 'validated' | 'already-validated' | 'not-found';
-    ticket?: TicketReservation;
-    wasUnpaid?: boolean;
+  onScanAndValidateTicket: (rawQrPayload: string) => Promise<TicketScanResult>;
+  onCreatePromoter: (input: {
+    name: string;
+    code: string;
+    active: boolean;
+  }) => Promise<void>;
+  onUpdatePromoter: (
+    promoterId: string,
+    input: { name: string; code: string; active: boolean }
+  ) => Promise<void>;
+  onTogglePromoterActive: (promoterId: string, currentActive: boolean) => Promise<void>;
+  onDeletePromoter: (promoterId: string) => Promise<void>;
+  onSyncPendingPayments: () => Promise<{
+    checked: number;
+    approved: number;
+    cancelled: number;
   }>;
 }
 
-type AdminTab = 'visao-geral' | 'eventos' | 'compradores' | 'pre-lista' | 'validador';
+type AdminTab =
+  | 'visao-geral'
+  | 'scanner'
+  | 'promoters'
+  | 'eventos'
+  | 'compradores'
+  | 'pre-lista';
 
 export function AdminPage({
   authReady,
@@ -72,6 +96,7 @@ export function AdminPage({
   events,
   preListEntries,
   reservations,
+  promoters,
   onSignInGoogle,
   onSignOut,
   onAddEvent,
@@ -79,7 +104,12 @@ export function AdminPage({
   onTogglePreListStatus,
   onRemovePreListEntry,
   onUpdateTicketStatus,
-  onValidateTicketCode,
+  onScanAndValidateTicket,
+  onCreatePromoter,
+  onUpdatePromoter,
+  onTogglePromoterActive,
+  onDeletePromoter,
+  onSyncPendingPayments,
 }: AdminPageProps) {
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -98,16 +128,6 @@ export function AdminPage({
   const [newVenue, setNewVenue] = useState('');
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [eventFormFeedback, setEventFormFeedback] = useState<string | null>(null);
-
-  // QR validator state
-  const [qrInput, setQrInput] = useState('');
-  const [isValidatingQr, setIsValidatingQr] = useState(false);
-  const [qrValidationState, setQrValidationState] = useState<{
-    result: 'validated' | 'already-validated' | 'not-found';
-    code: string;
-    ticket?: TicketReservation;
-    wasUnpaid?: boolean;
-  } | null>(null);
 
   // Metrics computed strictly from real Firestore records
   const kpis = useMemo(() => {
@@ -143,7 +163,9 @@ export function AdminPage({
       (r) =>
         r.holderName.toLowerCase().includes(q) ||
         r.ticketCode.toLowerCase().includes(q) ||
-        r.whatsapp.includes(q)
+        r.whatsapp.includes(q) ||
+        (r.promoterCode?.toLowerCase().includes(q) ?? false) ||
+        (r.promoterName?.toLowerCase().includes(q) ?? false)
     );
   }, [reservations, buyerSearch]);
 
@@ -215,9 +237,15 @@ export function AdminPage({
     setBuyerFeedback(null);
     try {
       const mp = await checkMercadoPagoPaymentStatus(buyer.mpPaymentId);
-      if (mp.normalizedStatus === 'pago') {
+      const mapped = mapMercadoPagoRawStatusToTicketStatus(mp.status);
+      if (mp.normalizedStatus === 'pago' || mapped === 'pago') {
         await onUpdateTicketStatus(buyer.ticketCode, 'pago');
         setBuyerFeedback(`Pagamento ${buyer.ticketCode} confirmado via Mercado Pago.`);
+      } else if (mapped === 'cancelado') {
+        await onUpdateTicketStatus(buyer.ticketCode, 'cancelado');
+        setBuyerFeedback(
+          `Pagamento ${buyer.ticketCode} marcado como cancelado (status MP: "${mp.status}").`
+        );
       } else {
         setBuyerFeedback(
           `Ingresso ${buyer.ticketCode} segue com status "${mp.status}" no Mercado Pago.`
@@ -244,19 +272,6 @@ export function AdminPage({
       setBuyerFeedback(`Erro ao atualizar status de ${buyer.ticketCode}.`);
     } finally {
       setBusyActionId(null);
-    }
-  };
-
-  const handleValidateQr = async (e: FormEvent) => {
-    e.preventDefault();
-    const cleaned = qrInput.trim().toUpperCase();
-    if (!cleaned) return;
-    setIsValidatingQr(true);
-    try {
-      const outcome = await onValidateTicketCode(cleaned);
-      setQrValidationState({ ...outcome, code: cleaned });
-    } finally {
-      setIsValidatingQr(false);
     }
   };
 
@@ -365,10 +380,11 @@ export function AdminPage({
 
   const tabs: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: 'visao-geral', label: 'Visão Geral', icon: LayoutDashboard },
+    { id: 'scanner', label: 'Scanner de Ingressos', icon: ScanLine },
+    { id: 'promoters', label: 'Promoters', icon: Trophy },
     { id: 'eventos', label: 'Eventos', icon: CalendarPlus },
     { id: 'compradores', label: 'Compradores', icon: Ticket },
     { id: 'pre-lista', label: 'Lista', icon: ClipboardList },
-    { id: 'validador', label: 'Validar QR', icon: QrCode },
   ];
 
   return (
@@ -496,9 +512,13 @@ export function AdminPage({
               >
                 {kpis.validatedCount}
               </p>
-              <p className="mt-1 text-xs text-[#71717A]">
-                Passes validados na portaria
-              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('scanner')}
+                className="mt-1 text-xs font-semibold text-[#E11D38] transition-colors hover:text-white"
+              >
+                Abrir Scanner de Ingressos →
+              </button>
             </div>
           </div>
 
@@ -538,14 +558,18 @@ export function AdminPage({
                           className={`text-[11px] font-semibold uppercase ${
                             r.status === 'validado' || r.status === 'pago'
                               ? 'text-emerald-400'
-                              : 'text-amber-300'
+                              : r.status === 'cancelado'
+                                ? 'text-[#FDA4AF]'
+                                : 'text-amber-300'
                           }`}
                         >
                           {r.status === 'validado'
                             ? 'Validado'
                             : r.status === 'pago'
                               ? 'Pago'
-                              : 'Aguardando Pix'}
+                              : r.status === 'cancelado'
+                                ? 'Cancelado'
+                                : 'Aguardando Pix'}
                         </p>
                       </div>
                     </li>
@@ -761,7 +785,7 @@ export function AdminPage({
                 type="search"
                 value={buyerSearch}
                 onChange={(e) => setBuyerSearch(e.target.value)}
-                placeholder="Filtrar nome, código ou WhatsApp..."
+                placeholder="Filtrar nome, código, WhatsApp ou promoter..."
                 aria-label="Filtrar compradores"
                 className="min-h-[42px] w-full rounded-md border border-white/15 bg-[#0B0B10] py-2 pr-3 pl-9 text-sm text-white focus:border-[#E11D38] focus:outline-none"
               />
@@ -785,12 +809,13 @@ export function AdminPage({
                 </p>
               </div>
             ) : (
-              <table className="w-full min-w-[740px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[780px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-xs tracking-wider text-[#9CA3AF] uppercase">
                     <th className="px-4 py-3 font-semibold">Código</th>
                     <th className="px-4 py-3 font-semibold">Titular</th>
                     <th className="px-4 py-3 font-semibold">Categoria</th>
+                    <th className="px-4 py-3 font-semibold">Promoter</th>
                     <th className="px-4 py-3 text-right font-semibold">Qtd</th>
                     <th className="px-4 py-3 text-right font-semibold">Total</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
@@ -812,6 +837,22 @@ export function AdminPage({
                       <td className="px-4 py-3 text-xs text-[#D1D5DB]">
                         {buyer.tierName}
                       </td>
+                      <td className="px-4 py-3">
+                        {buyer.promoterCode ? (
+                          <div>
+                            <p className="font-mono text-xs font-semibold text-[#E11D38]">
+                              {buyer.promoterCode}
+                            </p>
+                            {buyer.promoterName && (
+                              <p className="text-[11px] text-[#9CA3AF]">
+                                {buyer.promoterName}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[#6B7280]">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right font-mono tabular-nums text-white">
                         {buyer.quantity}
                       </td>
@@ -823,14 +864,18 @@ export function AdminPage({
                           className={
                             buyer.status === 'validado' || buyer.status === 'pago'
                               ? 'text-emerald-400'
-                              : 'text-amber-300'
+                              : buyer.status === 'cancelado'
+                                ? 'text-[#FDA4AF]'
+                                : 'text-amber-300'
                           }
                         >
                           {buyer.status === 'validado'
                             ? 'Validado'
                             : buyer.status === 'pago'
                               ? 'Pago'
-                              : 'Aguardando Pix'}
+                              : buyer.status === 'cancelado'
+                                ? 'Cancelado'
+                                : 'Aguardando Pix'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -973,135 +1018,25 @@ export function AdminPage({
         </div>
       )}
 
-      {/* QR Code Validation Area */}
-      {activeTab === 'validador' && (
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <form
-            onSubmit={handleValidateQr}
-            className="hz-card-surface rounded-xl p-6 lg:col-span-6"
-          >
-            <h2 className="font-display text-2xl font-bold text-white uppercase">
-              Validação de QR Code na Portaria
-            </h2>
-            <p className="mt-2 text-sm text-[#9CA3AF]">
-              Digite ou cole o código de um ingresso (ex.:{' '}
-              <span className="font-mono text-white">HZ-XXXXXX</span>) para registrar o
-              check-in no Firestore.
-            </p>
+      {/* Scanner de Ingressos (Câmera + Firebase Atômico) */}
+      {activeTab === 'scanner' && (
+        <TicketScannerPanel
+          reservations={reservations}
+          onScanAndValidate={onScanAndValidateTicket}
+        />
+      )}
 
-            <div className="mt-5 flex gap-2">
-              <input
-                type="text"
-                value={qrInput}
-                onChange={(e) => setQrInput(e.target.value)}
-                placeholder="Código do ingresso (HZ-XXXXXX)"
-                aria-label="Código do ingresso para validação"
-                className="min-h-[44px] flex-1 rounded-md border border-white/15 bg-[#050507] px-3.5 py-2 font-mono text-sm text-white uppercase placeholder:normal-case placeholder:text-[#6B7280] focus:border-[#E11D38] focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isValidatingQr}
-                className="hz-crimson-button min-h-[44px] rounded-md px-5 py-2 text-xs font-bold tracking-wider text-white uppercase whitespace-nowrap shrink-0 disabled:opacity-60"
-              >
-                {isValidatingQr ? 'Validando...' : 'Validar Código'}
-              </button>
-            </div>
-
-            {reservations.length > 0 && (
-              <div className="mt-6 border-t border-white/10 pt-4">
-                <p className="text-xs font-semibold tracking-wider text-[#9CA3AF] uppercase">
-                  Últimos Códigos Registrados
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {reservations.slice(0, 10).map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setQrInput(r.ticketCode)}
-                      className="rounded border border-white/15 bg-[#050507] px-3 py-1.5 font-mono text-xs text-white hover:border-[#E11D38]"
-                    >
-                      {r.ticketCode}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </form>
-
-          <div className="hz-card-surface flex flex-col justify-center rounded-xl p-6 lg:col-span-6">
-            {!qrValidationState ? (
-              <div className="py-6 text-center">
-                <QrCode className="mx-auto h-10 w-10 text-[#9CA3AF]" aria-hidden="true" />
-                <p className="mt-3 text-sm font-semibold text-white">
-                  Aguardando leitura de código
-                </p>
-                <p className="mt-1 text-xs text-[#9CA3AF]">
-                  O resultado do check-in aparecerá aqui instantaneamente.
-                </p>
-              </div>
-            ) : qrValidationState.result === 'validated' && qrValidationState.ticket ? (
-              <div
-                data-testid="qr-validation-result"
-                className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-5"
-              >
-                <div className="flex items-center gap-2.5 text-emerald-400">
-                  <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
-                  <span className="font-display text-xl font-bold uppercase">
-                    Entrada Liberada — Check-in Concluído
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-white">
-                  Titular: <strong>{qrValidationState.ticket.holderName}</strong>
-                </p>
-                <p className="mt-1 font-mono text-xs text-[#D1D5DB]">
-                  {qrValidationState.ticket.ticketCode} ·{' '}
-                  {qrValidationState.ticket.tierName}
-                </p>
-                {qrValidationState.wasUnpaid && (
-                  <p className="mt-3 rounded border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-200">
-                    Atenção: este pedido constava como Aguardando Pix antes da
-                    validação na portaria.
-                  </p>
-                )}
-              </div>
-            ) : qrValidationState.result === 'already-validated' &&
-              qrValidationState.ticket ? (
-              <div
-                data-testid="qr-validation-result"
-                className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-5"
-              >
-                <div className="flex items-center gap-2.5 text-amber-300">
-                  <ShieldAlert className="h-6 w-6" aria-hidden="true" />
-                  <span className="font-display text-xl font-bold uppercase">
-                    Ingresso Já Utilizado
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-white">
-                  Titular: <strong>{qrValidationState.ticket.holderName}</strong>
-                </p>
-                <p className="mt-1 font-mono text-xs text-[#D1D5DB]">
-                  Validado às {qrValidationState.ticket.validatedAt || '—'}
-                </p>
-              </div>
-            ) : (
-              <div
-                data-testid="qr-validation-result"
-                className="rounded-lg border border-[#E11D38]/50 bg-[#E11D38]/10 p-5"
-              >
-                <div className="flex items-center gap-2.5 text-[#FDA4AF]">
-                  <XCircle className="h-6 w-6 text-[#E11D38]" aria-hidden="true" />
-                  <span className="font-display text-xl font-bold uppercase">
-                    Código Não Encontrado
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-[#D1D5DB]">
-                  O código <span className="font-mono text-white">{qrValidationState.code}</span>{' '}
-                  não corresponde a nenhum ingresso registrado.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Sistema de Promoters e Cupons de Identificação */}
+      {activeTab === 'promoters' && (
+        <PromotersPanel
+          promoters={promoters}
+          reservations={reservations}
+          onCreatePromoter={onCreatePromoter}
+          onUpdatePromoter={onUpdatePromoter}
+          onTogglePromoterActive={onTogglePromoterActive}
+          onDeletePromoter={onDeletePromoter}
+          onSyncPendingPayments={onSyncPendingPayments}
+        />
       )}
     </section>
   );

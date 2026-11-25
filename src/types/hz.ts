@@ -51,7 +51,20 @@ export interface PublicGuestListEntry {
   status: 'aguardando' | 'confirmado';
 }
 
-export type TicketStatus = 'aguardando-pagamento' | 'pago' | 'validado';
+export interface Promoter {
+  id: string;
+  name: string;
+  code: string;
+  active: boolean;
+  createdAt: string;
+  createdAtMs?: number;
+}
+
+export type TicketStatus =
+  | 'aguardando-pagamento'
+  | 'pago'
+  | 'validado'
+  | 'cancelado';
 
 export interface TicketReservation {
   id: string;
@@ -68,8 +81,13 @@ export interface TicketReservation {
   totalCents: number;
   mpPaymentId: string;
   createdAt: string;
+  createdAtMs?: number;
+  createdAtFull?: string;
   status: TicketStatus;
   validatedAt?: string;
+  promoterId?: string;
+  promoterName?: string;
+  promoterCode?: string;
 }
 
 export interface PixPaymentCreationResult {

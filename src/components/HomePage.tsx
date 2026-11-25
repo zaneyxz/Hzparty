@@ -39,14 +39,25 @@ export function HomePage({ events, onNavigate }: HomePageProps) {
                 className="mt-4 font-display text-[clamp(2.75rem,5.2vw,4.5rem)] leading-[0.95] font-extrabold tracking-tight text-white uppercase"
                 style={{ textWrap: 'balance' }}
               >
-                A noite entra em alta frequência na{' '}
+                Uma experiência única na{' '}
                 <span className="hz-silver-text">HZ PARTY</span>
               </h1>
 
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-[#B4B9C4] sm:text-lg">
-                Resenha em chácara, espaço qualificado, segurança presente até o final
-                da festa, venda de bebidas somente para +18.
-              </p>
+              <div className="mt-5 max-w-xl space-y-2.5 text-sm leading-relaxed text-[#B4B9C4] sm:text-base">
+                <p>
+                  A HZ PARTY foi preparada para proporcionar uma experiência única de
+                  entretenimento, música e diversão em um ambiente exclusivo.
+                </p>
+                <p>
+                  O evento será realizado em uma chácara com estrutura adequada para
+                  receber o público, proporcionando conforto e uma experiência
+                  diferenciada.
+                </p>
+                <p>
+                  Contaremos com equipe de segurança durante toda a realização do
+                  evento, garantindo maior tranquilidade aos participantes.
+                </p>
+              </div>
 
               {/* Edition Facts Bar (Unboxed Metadata) */}
               {featuredEvent && (
@@ -183,7 +194,7 @@ export function HomePage({ events, onNavigate }: HomePageProps) {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-xs font-semibold tracking-[0.14em] text-[#E11D38] uppercase">
-                Padrão HZ PARTY
+                Sobre HZ PARTY
               </p>
               <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-white uppercase sm:text-4xl">
                 Estrutura desenhada para a madrugada
@@ -195,36 +206,37 @@ export function HomePage({ events, onNavigate }: HomePageProps) {
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-12">
-            <div className="hz-card-surface rounded-lg p-6 md:col-span-5">
+          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="hz-card-surface rounded-lg p-6">
               <p className="font-mono text-xs font-semibold text-[#E11D38]">01</p>
               <h3 className="mt-3 font-display text-2xl font-bold text-white uppercase">
                 DJ Qualificado, Carro de som
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#9CA3AF]">
-                Som de alta qualidade e DJs qualificados comandando o carro de som do
-                início até às 05:00 da manhã.
+                Estrutura de som de alta qualidade e DJs experientes, garantindo uma
+                experiência musical completa do início ao encerramento do evento.
               </p>
             </div>
 
-            <div className="hz-card-surface rounded-lg p-6 md:col-span-4">
+            <div className="hz-card-surface rounded-lg p-6">
               <p className="font-mono text-xs font-semibold text-[#E11D38]">02</p>
               <h3 className="mt-3 font-display text-2xl font-bold text-white uppercase">
-                Lista e Lotes
+                Gestão de Listas e Lotes
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#9CA3AF]">
-                Lista (sem nome pagará mais caro), lotes conforme o evento ocorre.
+                Sistema organizado de listas de convidados e ingressos por lotes, com
+                condições especiais e controle de acesso.
               </p>
             </div>
 
-            <div className="hz-card-surface rounded-lg p-6 md:col-span-3">
+            <div className="hz-card-surface rounded-lg p-6">
               <p className="font-mono text-xs font-semibold text-[#E11D38]">03</p>
               <h3 className="mt-3 font-display text-2xl font-bold text-white uppercase">
-                Check-in em QR
+                Acesso Digital com QR Code
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#9CA3AF]">
-                Passe digital individual com código exclusivo e leitura rápida na
-                entrada.
+                Ingressos digitais individuais com validação por QR Code,
+                proporcionando agilidade, segurança e praticidade no credenciamento.
               </p>
             </div>
           </div>

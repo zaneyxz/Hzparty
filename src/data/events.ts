@@ -65,7 +65,7 @@ export const INITIAL_EVENTS: EventEdition[] = [
     id: 'hz-dec-12',
     title: 'HZ PARTY — Edição Principal',
     subtitle:
-      'Resenha em chácara, espaço qualificado, segurança presente até o final da festa, venda de bebidas somente para +18.',
+      'A HZ PARTY foi preparada para proporcionar uma experiência única de entretenimento, música e diversão em um ambiente exclusivo.',
     dateLabel: '12 de Dezembro',
     timeRange: '22:30 às 05:00',
     venue: 'Chácara: Espaço de Lazer Alto da Gávea',

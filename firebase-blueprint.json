@@ -225,7 +225,7 @@
         },
         "status": {
           "type": "string",
-          "enum": ["aguardando-pagamento", "pago", "validado"],
+          "enum": ["aguardando-pagamento", "pago", "validado", "cancelado"],
           "description": "Estado do ingresso"
         },
         "createdAt": {
@@ -242,6 +242,24 @@
           "type": "string",
           "maxLength": 40,
           "description": "Horário legível da validação na portaria"
+        },
+        "promoterId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 64,
+          "description": "ID do promoter que indicou a compra (opcional)"
+        },
+        "promoterName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Nome do promoter preservado no pedido"
+        },
+        "promoterCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{2,24}$",
+          "maxLength": 24,
+          "description": "Código exclusivo do promoter (sem desconto)"
         }
       },
       "required": [
@@ -289,6 +307,46 @@
         }
       },
       "required": ["ticketCode", "holderName", "whatsapp", "createdAt"]
+    },
+    "Promoter": {
+      "title": "Promoter",
+      "description": "Promoter autorizado da HZ PARTY com código exclusivo de identificação de vendas (sem desconto).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "maxLength": 64,
+          "description": "Identificador único do promoter"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Nome do promoter exibido no checkout e nos relatórios"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{2,24}$",
+          "maxLength": 24,
+          "description": "Cupom exclusivo de identificação do promoter (sem desconto)"
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Define se o promoter aparece disponível para seleção no checkout"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na criação"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do servidor na atualização"
+        }
+      },
+      "required": ["id", "name", "code", "active", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -306,11 +364,15 @@
     },
     "/tickets/{ticketId}": {
       "schema": { "$ref": "#/entities/TicketPass" },
-      "description": "Passes digitais consultáveis pelo código exato (ID); criação inicial restrita a aguardando-pagamento."
+      "description": "Passes digitais consultáveis pelo código exato (ID); criação inicial restrita a aguardando-pagamento com atribuição opcional de promoter."
     },
     "/ticket_contacts/{ticketId}": {
       "schema": { "$ref": "#/entities/TicketContact" },
       "description": "PII isolada do comprador (nome completo e WhatsApp); leitura e gestão exclusivas do administrador."
+    },
+    "/promoters/{promoterId}": {
+      "schema": { "$ref": "#/entities/Promoter" },
+      "description": "Cadastro público de promoters (sem PII) para seleção no checkout; gestão exclusiva do administrador."
     }
   }
 }

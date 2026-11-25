@@ -42,6 +42,29 @@ service cloud.firestore {
         code.matches('^HZ-[A-Z0-9]{6}$');
     }
 
+    function isValidPromoterCode(code) {
+      return code is string &&
+        code.size() >= 2 &&
+        code.size() <= 24 &&
+        code.matches('^[A-Z0-9]{2,24}$');
+    }
+
+    function isValidPromoter(data) {
+      return data.keys().hasAll([
+          'id', 'name', 'code', 'active', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'name', 'code', 'active', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.id.size() <= 64 &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 80 &&
+        isValidPromoterCode(data.code) &&
+        data.active is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
     function isValidEventEdition(data) {
       return data.keys().hasAll([
           'id', 'title', 'subtitle', 'dateLabel', 'timeRange',
@@ -110,7 +133,8 @@ service cloud.firestore {
         data.keys().hasOnly([
           'ticketCode', 'displayName', 'eventTitle', 'eventDate', 'eventTime',
           'venue', 'tierName', 'quantity', 'totalCents', 'mpPaymentId', 'status',
-          'createdAt', 'updatedAt', 'validatedAtLabel'
+          'createdAt', 'updatedAt', 'validatedAtLabel',
+          'promoterId', 'promoterName', 'promoterCode'
         ]) &&
         isValidTicketCode(data.ticketCode) &&
         data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80 &&
@@ -122,10 +146,13 @@ service cloud.firestore {
         data.quantity is int && data.quantity >= 1 && data.quantity <= 12 &&
         data.totalCents is int && data.totalCents >= 1500 && data.totalCents <= 500000 &&
         data.mpPaymentId is string && data.mpPaymentId.size() >= 1 && data.mpPaymentId.size() <= 64 &&
-        data.status in ['aguardando-pagamento', 'pago', 'validado'] &&
+        data.status in ['aguardando-pagamento', 'pago', 'validado', 'cancelado'] &&
         data.createdAt is timestamp &&
         (!('updatedAt' in data) || data.updatedAt is timestamp) &&
-        (!('validatedAtLabel' in data) || (data.validatedAtLabel is string && data.validatedAtLabel.size() <= 40));
+        (!('validatedAtLabel' in data) || (data.validatedAtLabel is string && data.validatedAtLabel.size() <= 40)) &&
+        (!('promoterId' in data) || (isValidId(data.promoterId) && data.promoterId.size() <= 64 && 'promoterName' in data && 'promoterCode' in data)) &&
+        (!('promoterName' in data) || (data.promoterName is string && data.promoterName.size() >= 2 && data.promoterName.size() <= 80 && 'promoterId' in data && 'promoterCode' in data)) &&
+        (!('promoterCode' in data) || (isValidPromoterCode(data.promoterCode) && 'promoterId' in data && 'promoterName' in data));
     }
 
     function isValidTicketContact(data) {
@@ -213,6 +240,7 @@ service cloud.firestore {
       allow update: if isAdmin() &&
         isValidTicketCode(ticketId) &&
         isValidTicketPass(incoming()) &&
+        existing().status != 'validado' &&
         incoming().ticketCode == existing().ticketCode &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
@@ -230,9 +258,30 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
 
-    // 5. Admin Registry (Managed out-of-band; never writable by clients)
+    // 5. Admin Registry (Managed out-of-band; self-get only for staff verification, never writable by clients)
     match /admins/{adminId} {
-      allow read, write: if false;
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, write: if false;
+    }
+
+    // 6. Promoters Registry (Zero PII — public read for checkout selection; Admin-managed CRUD)
+    match /promoters/{promoterId} {
+      allow get: if isValidId(promoterId);
+      allow list: if true;
+      allow create: if isAdmin() &&
+        isValidId(promoterId) &&
+        isValidPromoter(incoming()) &&
+        incoming().id == promoterId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isAdmin() &&
+        isValidId(promoterId) &&
+        isValidPromoter(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'code', 'active', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(promoterId);
     }
   }
 }

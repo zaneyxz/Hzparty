@@ -1,6 +1,6 @@
 {
   "name": "HZ PARTY",
   "description": "Plataforma oficial da HZ PARTY — Próxima edição em 12 de Dezembro, das 22:30 às 05:00 no Espaço de Lazer Alto da Gávea em Londrina. Lista, ingressos e acesso digital.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

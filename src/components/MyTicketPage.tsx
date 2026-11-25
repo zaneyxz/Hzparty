@@ -164,11 +164,13 @@ export function MyTicketPage({
   const getStatusLabel = (status: TicketReservation['status']) => {
     if (status === 'validado') return 'Check-in Validado';
     if (status === 'pago') return 'Pago · Liberado';
+    if (status === 'cancelado') return 'Pagamento Cancelado';
     return 'Aguardando Pagamento Pix';
   };
 
   const getStatusColor = (status: TicketReservation['status']) => {
     if (status === 'validado' || status === 'pago') return 'text-emerald-400';
+    if (status === 'cancelado') return 'text-[#FDA4AF]';
     return 'text-[#E11D38]';
   };
 
@@ -270,7 +272,9 @@ export function MyTicketPage({
                           ? 'Validado'
                           : item.status === 'pago'
                             ? 'Pago'
-                            : 'Pendente'}
+                            : item.status === 'cancelado'
+                              ? 'Cancelado'
+                              : 'Pendente'}
                       </span>
                     </button>
                   );
