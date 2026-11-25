@@ -17,7 +17,5 @@ export const CONFIRMED_ATTRACTIONS: ConfirmedAttraction[] = [
     eventDate: '12/12',
     imageUrl: '/assets/aistudio/Cartaz_Gritty_da_HZ_Party_fdadce4c.png',
     imageAlt: 'Cartaz oficial de Fabinho Deejhay confirmado na HZ PARTY',
-    description:
-      'Set principal da madrugada comandando o som da chácara com energia máxima do início ao fim da apresentação.',
   },
 ];
